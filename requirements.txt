@@ -11,4 +11,4 @@ torch
 spacy
 networkx
 sentence-transformers
-tavily-python
+tavily-python>=0.5.0

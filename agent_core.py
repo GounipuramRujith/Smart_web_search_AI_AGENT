@@ -25,7 +25,6 @@ import time
 import hashlib
 import re
 from typing import Any, Dict, List, Optional, Union
-from tavily import TavilyClient
 
 device = "mps" if torch.backends.mps.is_available() else "cpu"
 print(f"🚀 Using device: {device}")
@@ -275,6 +274,12 @@ def google_search_and_embed(query: str) -> Dict[str, Any]:
 
 
 def tavily_search_and_embed(query: str) -> Dict[str, Any]:
+    try:
+        from tavily import TavilyClient
+    except ImportError:
+        print("⚠️ tavily-python not installed. Run: pip install tavily-python")
+        return {"vector_db": None, "direct_answer": None}
+
     tavily_api_key = os.getenv("TAVILY_API_KEY", "").strip()
     if not tavily_api_key:
         print("⚠️ TAVILY_API_KEY not set. Web search may fail.")
@@ -287,6 +292,7 @@ def tavily_search_and_embed(query: str) -> Dict[str, Any]:
             max_results=5,
             search_depth="advanced",
             include_raw_content=True,
+            include_answer=True,
         )
     except Exception as e:
         print(f"⚠️ Tavily search request failed: {e}")
@@ -294,10 +300,8 @@ def tavily_search_and_embed(query: str) -> Dict[str, Any]:
 
     results = response.get("results", [])
 
-    # Extract direct answer from the top result snippet
-    direct_answer = None
-    if results and results[0].get("content"):
-        direct_answer = results[0]["content"].strip()
+    # Use Tavily's synthesized answer (None if unavailable)
+    direct_answer = response.get("answer") or None
 
     # Build text corpus from raw content or content snippets
     all_text = ""
